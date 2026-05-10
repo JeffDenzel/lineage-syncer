@@ -129,7 +129,6 @@ def get_access_token(client_id: str, client_secret: str, tenant_id: str) -> str:
 | `requests` | HTTP client for REST APIs |
 | `pydantic` | Data validation and schema enforcement |
 | `click` | CLI framework |
-| `databricks-sdk` | Databricks REST API client |
 
 ### Development (Dev Only)
 | Package | Purpose |
