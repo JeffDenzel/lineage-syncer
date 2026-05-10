@@ -125,10 +125,11 @@ def get_access_token(client_id: str, client_secret: str, tenant_id: str) -> str:
 ### Core (Required)
 | Package | Purpose |
 |---------|---------|
-| `msal` | Azure Entra ID authentication |
+| `databricks-sdk` | Databricks Service Principal auth + REST API client |
 | `requests` | HTTP client for REST APIs |
 | `pydantic` | Data validation and schema enforcement |
 | `click` | CLI framework |
+| `databricks-sdk` | Databricks REST API client |
 
 ### Development (Dev Only)
 | Package | Purpose |
@@ -181,10 +182,8 @@ def get_access_token(client_id: str, client_secret: str, tenant_id: str) -> str:
 
 - **Never** commit credentials, tokens, or secrets to the repository
 - Use environment variables for all sensitive values:
-  - `AZURE_CLIENT_ID`
-  - `AZURE_CLIENT_SECRET`
-  - `AZURE_TENANT_ID`
   - `DATABRICKS_HOST`
-  - `DATABRICKS_TOKEN`
+  - `DATABRICKS_CLIENT_ID`
+  - `DATABRICKS_CLIENT_SECRET`
 - `.env` files are gitignored and used only for local development
 - In CI/CD, use GitHub Secrets
