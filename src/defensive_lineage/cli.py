@@ -84,9 +84,45 @@ def verify_auth() -> None:
 
 
 @cli.command()
-def scan() -> None:
+@click.option(
+    "--output",
+    default="scan_output.json",
+    help="Path to save the raw JSON scan results.",
+)
+def scan(output: str) -> None:
     """Run Power BI metadata extraction (Phase 2)."""
-    click.echo("Scanning Power BI... (not yet implemented)")
+    try:
+        settings: Settings = load_settings()
+        click.echo("✓ Settings loaded")
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"✗ Failed to load settings: {exc}", err=True)
+        sys.exit(1)
+
+    from .exceptions import ScanTimeoutError
+    from .scanner import run_full_scan
+    import json
+
+    try:
+        click.echo("Starting Power BI scan flow...")
+        results = run_full_scan(settings)
+        
+        with open(output, "w") as f:
+            json.dump(results, f, indent=2)
+            
+        workspaces_count = len(results.get("workspaces", []))
+        click.echo(f"✓ Scan completed successfully")
+        click.echo(f"✓ Processed {workspaces_count} workspaces with endorsed assets")
+        click.echo(f"✓ Results saved to {output}")
+        
+    except AuthenticationError as exc:
+        click.echo(f"✗ Authentication failed: {exc}", err=True)
+        sys.exit(1)
+    except ScanTimeoutError as exc:
+        click.echo(f"✗ Scan failed: {exc}", err=True)
+        sys.exit(1)
+    except Exception as exc:
+        click.echo(f"✗ Unexpected error: {exc}", err=True)
+        sys.exit(1)
 
 
 @cli.command()
