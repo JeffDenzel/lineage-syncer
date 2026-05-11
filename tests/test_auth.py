@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 import responses as resp
 
-from defensive_lineage.auth import PBI_SCOPE, get_databricks_client, get_pbi_token
-from defensive_lineage.exceptions import AuthenticationError
-from defensive_lineage.settings import Settings
+from defensive_lineage.services.auth import PBI_SCOPE, get_databricks_client, get_pbi_token
+from defensive_lineage.commons.exceptions import AuthenticationError
+from defensive_lineage.commons.settings import Settings
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -70,7 +69,7 @@ def test_get_pbi_token_raises_on_401(settings: Settings) -> None:
 
 @resp.activate
 def test_get_pbi_token_raises_on_403(settings: Settings) -> None:
-    """Error path: Entra returns 403 (missing PBI API permission) → raises AuthenticationError."""
+    """Error path: Entra returns 403, raises AuthenticationError."""
     resp.add(
         resp.POST,
         ENTRA_URL,
@@ -124,8 +123,10 @@ def test_get_pbi_token_uses_correct_scope(settings: Settings) -> None:
     assert len(resp.calls) == 1
     body = resp.calls[0].request.body
     assert isinstance(body, str)
-    assert f"scope={PBI_SCOPE.replace('/', '%2F').replace(':', '%3A')}" in body or \
-           f"scope={PBI_SCOPE}" in body
+    assert (
+        f"scope={PBI_SCOPE.replace('/', '%2F').replace(':', '%3A')}" in body
+        or f"scope={PBI_SCOPE}" in body
+    )
 
 
 @resp.activate
@@ -151,7 +152,7 @@ def test_get_pbi_token_uses_correct_grant_type(settings: Settings) -> None:
 
 
 def test_get_databricks_client_returns_client(settings: Settings) -> None:
-    """Happy path: SDK authenticates and me() returns → function returns WorkspaceClient."""
+    """Happy path: SDK authenticates and me() returns, returns WorkspaceClient."""
     mock_me = MagicMock()
     mock_me.user_name = "service-principal@tenant.com"
 
@@ -181,8 +182,8 @@ def test_get_databricks_client_raises_on_auth_failure(settings: Settings) -> Non
 
 
 def test_get_databricks_client_raises_on_me_failure(settings: Settings) -> None:
-    """Error path: current_user.me() raises (SP lacks permission) → AuthenticationError."""
-    with patch("defensive_lineage.auth.WorkspaceClient") as mock_ws_cls:
+    """Error path: current_user.me() raises, raises AuthenticationError."""
+    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_client = MagicMock()
         mock_client.current_user.me.side_effect = PermissionError("Not authorized")
         mock_ws_cls.return_value = mock_client
