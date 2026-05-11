@@ -1,24 +1,22 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import responses as resp
 
-from defensive_lineage.exceptions import ScanTimeoutError
-from defensive_lineage.scanner import (
+from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
+from defensive_lineage.commons.exceptions import ScanTimeoutError
+from defensive_lineage.services.scanner import (
     PBI_ADMIN_BASE_URL,
-    _MAX_WORKSPACES_PER_SCAN,
     get_scan_results,
     get_workspace_ids,
     poll_scan_status,
-    run_full_scan,
     trigger_scan,
 )
-from defensive_lineage.settings import Settings
+from defensive_lineage.commons.settings import Settings
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -58,6 +56,7 @@ def settings() -> Settings:
 
 # --- get_workspace_ids ---
 
+
 @resp.activate
 def test_get_workspace_ids_returns_ids() -> None:
     resp.add(
@@ -67,7 +66,10 @@ def test_get_workspace_ids_returns_ids() -> None:
         status=200,
     )
     result = get_workspace_ids(FAKE_TOKEN)
-    assert result == ["97d03602-4873-4760-b37e-1563ef5358e3", "67b7e93a-3fb3-493c-9e41-2c5051008f24"]
+    assert result == [
+        "97d03602-4873-4760-b37e-1563ef5358e3",
+        "67b7e93a-3fb3-493c-9e41-2c5051008f24",
+    ]
 
 
 @resp.activate
@@ -84,7 +86,7 @@ def test_get_workspace_ids_empty_tenant() -> None:
 @resp.activate
 def test_get_workspace_ids_passes_modified_since() -> None:
     from datetime import datetime, timezone
-    
+
     resp.add(
         resp.GET,
         f"{PBI_ADMIN_BASE_URL}/workspaces/modified",
@@ -93,12 +95,16 @@ def test_get_workspace_ids_passes_modified_since() -> None:
     )
     dt = datetime(2023, 1, 1, tzinfo=timezone.utc)
     get_workspace_ids(FAKE_TOKEN, modified_since=dt)
-    
+
     url = resp.calls[0].request.url
-    assert "modifiedSince=2023-01-01T00%3A00%3A00%2B00%3A00" in url or "modifiedSince=2023-01-01" in url
+    assert (
+        "modifiedSince=2023-01-01T00%3A00%3A00%2B00%3A00" in url
+        or "modifiedSince=2023-01-01" in url
+    )
 
 
 # --- trigger_scan ---
+
 
 @resp.activate
 def test_trigger_scan_single_batch() -> None:
@@ -110,7 +116,7 @@ def test_trigger_scan_single_batch() -> None:
     )
     workspace_ids = [f"id-{i}" for i in range(50)]
     scan_ids = trigger_scan(FAKE_TOKEN, workspace_ids)
-    
+
     assert scan_ids == ["e7d03602-4873-4760-b37e-1563ef5358e3"]
     assert len(resp.calls) == 1
 
@@ -125,7 +131,7 @@ def test_trigger_scan_multiple_batches() -> None:
     )
     workspace_ids = [f"id-{i}" for i in range(150)]
     scan_ids = trigger_scan(FAKE_TOKEN, workspace_ids)
-    
+
     assert len(scan_ids) == 2
     assert len(resp.calls) == 2
 
@@ -144,8 +150,9 @@ def test_trigger_scan_raises_on_api_error() -> None:
 
 # --- poll_scan_status ---
 
+
 @resp.activate
-@patch("defensive_lineage.scanner._POLL_INTERVAL_SECONDS", 0.01)
+@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.01)
 def test_poll_scan_status_succeeds() -> None:
     resp.add(
         resp.GET,
@@ -165,7 +172,7 @@ def test_poll_scan_status_succeeds() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.scanner._POLL_INTERVAL_SECONDS", 0.1)
+@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.1)
 def test_poll_scan_status_timeout() -> None:
     resp.add(
         resp.GET,
@@ -191,6 +198,7 @@ def test_poll_scan_status_failed() -> None:
 
 # --- get_scan_results ---
 
+
 @resp.activate
 def test_get_scan_results_filters_endorsed() -> None:
     resp.add(
@@ -202,18 +210,20 @@ def test_get_scan_results_filters_endorsed() -> None:
     results = get_scan_results(FAKE_TOKEN, "test-scan-id")
     workspaces = results["workspaces"]
     assert len(workspaces) == 1
-    
+
     ws = workspaces[0]
     assert len(ws["reports"]) == 1
     assert ws["reports"][0]["name"] == "CompositeModelParams-RLS"
-    
+
     assert len(ws["datasets"]) == 1
     assert ws["datasets"][0]["name"] == "ExportB"
 
 
 @resp.activate
 def test_get_scan_results_no_endorsed() -> None:
-    no_endorsed = {"workspaces": [{"id": "ws-1", "reports": [{"id": "rep-1", "tags": []}]}]}
+    no_endorsed = {
+        "workspaces": [{"id": "ws-1", "reports": [{"id": "rep-1", "tags": []}]}]
+    }
     resp.add(
         resp.GET,
         f"{PBI_ADMIN_BASE_URL}/workspaces/scanResult/test-scan-id",
@@ -226,14 +236,15 @@ def test_get_scan_results_no_endorsed() -> None:
 
 # --- _pbi_request ---
 
+
 @resp.activate
-@patch("defensive_lineage.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_retries_on_429() -> None:
     resp.add(
         resp.GET,
         f"{PBI_ADMIN_BASE_URL}/workspaces/modified",
         status=429,
-        headers={"Retry-After": "0"}
+        headers={"Retry-After": "0"},
     )
     resp.add(
         resp.GET,
@@ -242,12 +253,15 @@ def test_pbi_request_retries_on_429() -> None:
         status=200,
     )
     result = get_workspace_ids(FAKE_TOKEN)
-    assert result == ["97d03602-4873-4760-b37e-1563ef5358e3", "67b7e93a-3fb3-493c-9e41-2c5051008f24"]
+    assert result == [
+        "97d03602-4873-4760-b37e-1563ef5358e3",
+        "67b7e93a-3fb3-493c-9e41-2c5051008f24",
+    ]
     assert len(resp.calls) == 2
 
 
 @resp.activate
-@patch("defensive_lineage.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_exhausts_retries() -> None:
     resp.add(
         resp.GET,
@@ -260,10 +274,28 @@ def test_pbi_request_exhausts_retries() -> None:
 
 # --- run_full_scan ---
 
+
 @resp.activate
-@patch("defensive_lineage.scanner.get_pbi_token", return_value=FAKE_TOKEN)
-@patch("defensive_lineage.scanner._POLL_INTERVAL_SECONDS", 0.01)
-def test_run_full_scan_integration(mock_token: patch, settings: Settings) -> None:
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
+)
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
+)
+@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    return_value=FIXTURE_SCAN_RESULT,
+)
+def test_run_full_scan_integration(
+    mock_get_scan_results: patch,
+    mock_poll_scan_status: patch,
+    mock_trigger_scan: patch,
+    mock_get_workspace_ids: patch,
+    settings: Settings,
+) -> None:
     # 1. get_workspace_ids
     resp.add(
         resp.GET,
@@ -292,11 +324,11 @@ def test_run_full_scan_integration(mock_token: patch, settings: Settings) -> Non
         json=FIXTURE_SCAN_RESULT,
         status=200,
     )
-    
-    results = run_full_scan(settings)
-    assert len(results["workspaces"]) == 1
-    assert len(results["datasourceInstances"]) == 1
-    
-    # Check if file was saved
-    assert os.path.exists("scan_output.json")
-    os.remove("scan_output.json")
+
+    scanner = ScannerClient(FAKE_TOKEN, settings)
+    results = list(scanner.run_full_scan())
+
+    assert len(results) == 1
+    assert len(results[0]["datasets"]) == 1
+
+    pass

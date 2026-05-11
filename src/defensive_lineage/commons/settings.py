@@ -84,7 +84,7 @@ class Settings(BaseModel):
         upper = v.upper()
         if upper not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
             raise ValueError(
-                f"Invalid log level '{v}'. Must be one of: DEBUG, INFO, WARNING, ERROR, CRITICAL"
+                f"Invalid log level '{v}'. EX: DEBUG, INFO, WARNING, ERROR, CRITICAL"
             )
         return upper
 
@@ -116,7 +116,11 @@ def load_settings() -> Settings:
     # Collect and parse optional fields with their correct types
     dl_log_level: str = os.environ.get("DL_LOG_LEVEL", "INFO")
     dl_scan_timeout: int = int(os.environ.get("DL_SCAN_TIMEOUT", "300"))
-    dl_dry_run: bool = os.environ.get("DL_DRY_RUN", "false").lower() in {"1", "true", "yes"}
+    dl_dry_run: bool = os.environ.get("DL_DRY_RUN", "false").lower() in {
+        "1",
+        "true",
+        "yes",
+    }  # noqa: E501
 
     try:
         settings = Settings(
@@ -127,7 +131,7 @@ def load_settings() -> Settings:
         )
     except ValidationError:
         logger.error(
-            "Settings validation failed. Ensure all required environment variables are set: %s",
+            "Settings validation failed. Required environment variables: %s",
             ", ".join(_REQUIRED_VARS),
         )
         raise

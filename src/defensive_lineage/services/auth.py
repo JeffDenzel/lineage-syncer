@@ -5,8 +5,8 @@ import logging
 import requests
 from databricks.sdk import WorkspaceClient
 
-from .exceptions import AuthenticationError
-from .settings import Settings
+from ..commons.exceptions import AuthenticationError
+from ..commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -97,15 +97,15 @@ def get_pbi_token(settings: Settings) -> str:
         "scope": PBI_SCOPE,
     }
 
-    logger.info(
-        "Acquiring Power BI token for tenant: %s", settings.azure_tenant_id
-    )
+    logger.info("Acquiring Power BI token for tenant: %s", settings.azure_tenant_id)
 
     try:
         response = requests.post(url, data=payload, timeout=_REQUEST_TIMEOUT_SECONDS)
     except (requests.exceptions.ConnectionError, ConnectionError) as exc:
         logger.error("Network error acquiring PBI token: %s", exc)
-        raise AuthenticationError(f"PBI token request failed (network error): {exc}") from exc
+        raise AuthenticationError(
+            f"PBI token request failed (network error): {exc}"
+        ) from exc  # noqa: E501
     except requests.exceptions.Timeout as exc:
         logger.error("Timeout acquiring PBI token after %ss", _REQUEST_TIMEOUT_SECONDS)
         raise AuthenticationError("PBI token request timed out") from exc
@@ -124,7 +124,10 @@ def get_pbi_token(settings: Settings) -> str:
     token: str | None = body.get("access_token")
 
     if not token:
-        logger.error("PBI token response missing 'access_token'. Body keys: %s", list(body.keys()))
+        logger.error(
+            "PBI token response missing 'access_token'. Body keys: %s",
+            list(body.keys()),
+        )  # noqa: E501
         raise AuthenticationError(
             "PBI token response did not contain 'access_token'. "
             f"Response keys: {list(body.keys())}"

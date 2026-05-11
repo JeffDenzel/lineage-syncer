@@ -1,0 +1,57 @@
+from __future__ import annotations
+
+import logging
+from typing import Any, Iterator
+
+from ..services.scanner import (
+    get_scan_results,
+    get_workspace_ids,
+    poll_scan_status,
+    trigger_scan,
+)
+from ..commons.settings import Settings
+
+logger = logging.getLogger(__name__)
+
+
+class ScannerClient:
+    """Orchestrator client for the Power BI Scanner API.
+
+    Handles high-level workflow, tying together discovery, triggering,
+    polling, and result extraction.
+
+    Args:
+        token (str): The Power BI bearer token.
+        settings (Settings): The validated application settings.
+    """
+
+    def __init__(self, token: str, settings: Settings) -> None:
+        self.token = token
+        self.settings = settings
+
+    def run_full_scan(self) -> Iterator[dict[str, Any]]:
+        """Execute the complete Power BI scan flow, yielding workspaces as they are retrieved.
+
+        Yields:
+            dict[str, Any]: A dictionary containing the raw Power BI metadata for a single workspace.
+        """
+        logger.info("Starting PBI scan with provided token.")
+
+        workspace_ids = get_workspace_ids(self.token)
+        if not workspace_ids:
+            logger.warning("No workspaces found.")
+            return
+
+        scan_ids = trigger_scan(self.token, workspace_ids)
+
+        for idx, scan_id in enumerate(scan_ids):
+            logger.info("Polling scan %d/%d...", idx + 1, len(scan_ids))
+            poll_scan_status(
+                self.token, scan_id, timeout_seconds=self.settings.dl_scan_timeout
+            )
+
+            batch_results = get_scan_results(self.token, scan_id)
+            workspaces = batch_results.get("workspaces", [])
+
+            for workspace in workspaces:
+                yield workspace
