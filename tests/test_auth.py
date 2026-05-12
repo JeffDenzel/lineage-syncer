@@ -1,37 +1,21 @@
 from __future__ import annotations
 
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
 import responses as resp
 
-from defensive_lineage.auth import PBI_SCOPE, get_databricks_client, get_pbi_token
-from defensive_lineage.exceptions import AuthenticationError
-from defensive_lineage.settings import Settings
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
+from defensive_lineage.commons.exceptions import AuthenticationError
+from defensive_lineage.commons.settings import Settings
+from defensive_lineage.services.auth import (
+    PBI_SCOPE,
+    get_databricks_client,
+    get_pbi_token,
+)
 
 FAKE_TENANT_ID = "00000000-0000-0000-0000-000000000001"
-FAKE_CLIENT_ID = "00000000-0000-0000-0000-000000000002"
-FAKE_CLIENT_SECRET = "super-secret"
 FAKE_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.fake.token"
 ENTRA_URL = f"https://login.microsoftonline.com/{FAKE_TENANT_ID}/oauth2/v2.0/token"
-
-
-@pytest.fixture()
-def settings() -> Settings:
-    """Return a fully-populated Settings object with test credentials."""
-    return Settings(
-        azure_tenant_id=FAKE_TENANT_ID,
-        azure_client_id=FAKE_CLIENT_ID,
-        azure_client_secret=FAKE_CLIENT_SECRET,
-        databricks_host="https://adb-test.azuredatabricks.net",
-        databricks_client_id="dbx-client-id",
-        databricks_client_secret="dbx-client-secret",
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +54,7 @@ def test_get_pbi_token_raises_on_401(settings: Settings) -> None:
 
 @resp.activate
 def test_get_pbi_token_raises_on_403(settings: Settings) -> None:
-    """Error path: Entra returns 403 (missing PBI API permission) → raises AuthenticationError."""
+    """Error path: Entra returns 403, raises AuthenticationError."""
     resp.add(
         resp.POST,
         ENTRA_URL,
@@ -124,8 +108,10 @@ def test_get_pbi_token_uses_correct_scope(settings: Settings) -> None:
     assert len(resp.calls) == 1
     body = resp.calls[0].request.body
     assert isinstance(body, str)
-    assert f"scope={PBI_SCOPE.replace('/', '%2F').replace(':', '%3A')}" in body or \
-           f"scope={PBI_SCOPE}" in body
+    assert (
+        f"scope={PBI_SCOPE.replace('/', '%2F').replace(':', '%3A')}" in body
+        or f"scope={PBI_SCOPE}" in body
+    )
 
 
 @resp.activate
@@ -151,11 +137,11 @@ def test_get_pbi_token_uses_correct_grant_type(settings: Settings) -> None:
 
 
 def test_get_databricks_client_returns_client(settings: Settings) -> None:
-    """Happy path: SDK authenticates and me() returns → function returns WorkspaceClient."""
+    """Happy path: SDK authenticates and me() returns, returns WorkspaceClient."""
     mock_me = MagicMock()
     mock_me.user_name = "service-principal@tenant.com"
 
-    with patch("defensive_lineage.auth.WorkspaceClient") as mock_ws_cls:
+    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_client = MagicMock()
         mock_client.current_user.me.return_value = mock_me
         mock_ws_cls.return_value = mock_client
@@ -173,7 +159,7 @@ def test_get_databricks_client_returns_client(settings: Settings) -> None:
 
 def test_get_databricks_client_raises_on_auth_failure(settings: Settings) -> None:
     """Error path: WorkspaceClient constructor raises → AuthenticationError."""
-    with patch("defensive_lineage.auth.WorkspaceClient") as mock_ws_cls:
+    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_ws_cls.side_effect = ValueError("invalid credentials")
 
         with pytest.raises(AuthenticationError, match="Databricks auth failed"):
@@ -181,8 +167,8 @@ def test_get_databricks_client_raises_on_auth_failure(settings: Settings) -> Non
 
 
 def test_get_databricks_client_raises_on_me_failure(settings: Settings) -> None:
-    """Error path: current_user.me() raises (SP lacks permission) → AuthenticationError."""
-    with patch("defensive_lineage.auth.WorkspaceClient") as mock_ws_cls:
+    """Error path: current_user.me() raises, raises AuthenticationError."""
+    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_client = MagicMock()
         mock_client.current_user.me.side_effect = PermissionError("Not authorized")
         mock_ws_cls.return_value = mock_client
