@@ -1,0 +1,41 @@
+{
+  "workspaces": [
+    {
+      "id": "e7d03602-4873-4760-b37e-1563ef5358e3",
+      "name": "TestWorkspace",
+      "type": "Workspace",
+      "state": "Active",
+      "dataRetrievalState": "Enabled",
+      "isOnDedicatedCapacity": false,
+      "reports": [
+        {
+          "id": "rep-1",
+          "name": "CompositeModelParams-RLS",
+          "displayName": "Test Report",
+          "endorsementDetails": {
+            "endorsement": "Certified"
+          }
+        }
+      ],
+      "datasets": [
+        {
+          "id": "ds-1",
+          "name": "ExportB",
+          "endorsementDetails": {
+            "endorsement": "Promoted"
+          }
+        }
+      ]
+    }
+  ],
+  "datasourceInstances": [
+    {
+      "datasourceInstanceId": "c93ec4f7-8f0d-490e-af6d-7afa15bc18ce",
+      "datasourceType": "Sql",
+      "connectionDetails": {
+        "server": "test-server.azuredatabricks.net",
+        "database": "test_db"
+      }
+    }
+  ]
+}

@@ -7,16 +7,17 @@ from unittest.mock import patch
 import pytest
 import responses as resp
 
-from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
 from defensive_lineage.commons.exceptions import ScanTimeoutError
+from defensive_lineage.commons.settings import Settings
+from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
 from defensive_lineage.services.scanner import (
     PBI_ADMIN_BASE_URL,
+    RateLimitError,
     get_scan_results,
     get_workspace_ids,
     poll_scan_status,
     trigger_scan,
 )
-from defensive_lineage.commons.settings import Settings
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -39,19 +40,6 @@ with open(FIXTURES_DIR / "scan_result.json") as f:
     FIXTURE_SCAN_RESULT = json.load(f)
 
 FAKE_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.fake.token"
-
-
-@pytest.fixture()
-def settings() -> Settings:
-    return Settings(
-        azure_tenant_id="tenant-123",
-        azure_client_id="client-abc",
-        azure_client_secret="secret-xyz",
-        databricks_host="https://adb-1234.azuredatabricks.net",
-        databricks_client_id="dbx-client",
-        databricks_client_secret="dbx-secret",
-        dl_scan_timeout=5,
-    )
 
 
 # --- get_workspace_ids ---
@@ -268,7 +256,7 @@ def test_pbi_request_exhausts_retries() -> None:
         f"{PBI_ADMIN_BASE_URL}/workspaces/modified",
         status=429,
     )
-    with pytest.raises(ScanTimeoutError, match="Rate limit exceeded"):
+    with pytest.raises(RateLimitError, match="Rate limit exceeded"):
         get_workspace_ids(FAKE_TOKEN)
 
 
@@ -289,46 +277,48 @@ def test_pbi_request_exhausts_retries() -> None:
     "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
     return_value=FIXTURE_SCAN_RESULT,
 )
-def test_run_full_scan_integration(
+def test_run_full_scan_yields_datasource_instances(
     mock_get_scan_results: patch,
     mock_poll_scan_status: patch,
     mock_trigger_scan: patch,
     mock_get_workspace_ids: patch,
     settings: Settings,
 ) -> None:
-    # 1. get_workspace_ids
-    resp.add(
-        resp.GET,
-        f"{PBI_ADMIN_BASE_URL}/workspaces/modified",
-        json=FIXTURE_WORKSPACE_IDS,
-        status=200,
-    )
-    # 2. trigger_scan
-    resp.add(
-        resp.POST,
-        f"{PBI_ADMIN_BASE_URL}/workspaces/getInfo",
-        json=FIXTURE_SCAN_TRIGGER,
-        status=202,
-    )
-    # 3. poll_scan_status
-    resp.add(
-        resp.GET,
-        f"{PBI_ADMIN_BASE_URL}/workspaces/scanStatus/e7d03602-4873-4760-b37e-1563ef5358e3",
-        json=FIXTURE_SCAN_STATUS_SUCCEEDED,
-        status=200,
-    )
-    # 4. get_scan_results
-    resp.add(
-        resp.GET,
-        f"{PBI_ADMIN_BASE_URL}/workspaces/scanResult/e7d03602-4873-4760-b37e-1563ef5358e3",
-        json=FIXTURE_SCAN_RESULT,
-        status=200,
-    )
+    scanner = ScannerClient(FAKE_TOKEN, settings)
+    results = list(scanner.run_full_scan())
 
+    assert len(results) == 2
+    assert results[0]["type"] == "datasourceInstances"
+    assert len(results[0]["instances"]) == 1
+    assert results[0]["instances"][0]["datasourceInstanceId"] == (
+        "c93ec4f7-8f0d-490e-af6d-7afa15bc18ce"
+    )
+    assert len(results[1]["datasets"]) == 1
+
+
+@resp.activate
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
+)
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
+)
+@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch(
+    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    return_value={"workspaces": FIXTURE_SCAN_RESULT["workspaces"]},
+)
+def test_run_full_scan_handles_empty_datasource_instances(
+    mock_get_scan_results: patch,
+    mock_poll_scan_status: patch,
+    mock_trigger_scan: patch,
+    mock_get_workspace_ids: patch,
+    settings: Settings,
+) -> None:
     scanner = ScannerClient(FAKE_TOKEN, settings)
     results = list(scanner.run_full_scan())
 
     assert len(results) == 1
     assert len(results[0]["datasets"]) == 1
-
-    pass
