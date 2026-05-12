@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - [x] Phase 1 complete — authentication working
-- [ ] Phase 2 complete — `scan_output.json` produced with endorsed workspace metadata
+- [X] Phase 2 complete — `scan_output.json` produced with endorsed workspace metadata
 - [x] `LineageMapping` model defined in `transform.py` skeleton
 - [x] `scan_result.json` fixture available for test development
 
