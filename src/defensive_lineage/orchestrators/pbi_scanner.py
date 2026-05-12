@@ -30,10 +30,12 @@ class ScannerClient:
         self.settings = settings
 
     def run_full_scan(self) -> Iterator[dict[str, Any]]:
-        """Execute the complete Power BI scan flow, yielding workspaces as they are retrieved.
+        """Execute the complete Power BI scan flow, yielding datasourceInstances
+        and workspaces.
 
         Yields:
-            dict[str, Any]: A dictionary containing the raw Power BI metadata for a single workspace.
+            dict[str, Any]: A dictionary containing either datasourceInstances
+                (with type field) or the raw Power BI metadata for a single workspace.
         """
         logger.info("Starting PBI scan with provided token.")
 
@@ -51,7 +53,16 @@ class ScannerClient:
             )
 
             batch_results = get_scan_results(self.token, scan_id)
+            datasource_instances = batch_results.get("datasourceInstances", [])
             workspaces = batch_results.get("workspaces", [])
+
+            if datasource_instances:
+                logger.debug(
+                    "Yielding %d datasource instances for scan %s",
+                    len(datasource_instances),
+                    scan_id,
+                )
+                yield {"type": "datasourceInstances", "instances": datasource_instances}
 
             for workspace in workspaces:
                 yield workspace

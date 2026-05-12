@@ -7,10 +7,10 @@ import sys
 import click
 from dotenv import load_dotenv
 
-from .services.auth import get_databricks_client, get_pbi_token
-from .orchestrators.pbi_scanner import ScannerClient
 from .commons.exceptions import AuthenticationError, ScanTimeoutError
 from .commons.settings import Settings, load_settings
+from .orchestrators.pbi_scanner import ScannerClient
+from .services.auth import get_databricks_client, get_pbi_token
 
 load_dotenv()
 
