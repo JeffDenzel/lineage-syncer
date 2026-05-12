@@ -9,11 +9,11 @@
 - [x] Python 3.14 virtual environment created (`venv`)
 - [x] All dependencies installed (`pip install -e ".[dev]"`)
 - [x] `pyproject.toml` configured with correct target versions
-- [ ] `.env` file populated with valid credentials:
+- [x] `.env` file populated with valid credentials:
   - `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` (for Power BI)
   - `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET` (for Databricks)
-- [ ] Entra ID App Registration created and added to PBI-enabled security group
-- [ ] Databricks Service Principal provisioned with Unity Catalog permissions
+- [x] Entra ID App Registration created and added to PBI-enabled security group
+- [x] Databricks Service Principal provisioned with Unity Catalog permissions
 
 ---
 

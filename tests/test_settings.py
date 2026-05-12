@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from defensive_lineage.settings import Settings, load_settings
+from defensive_lineage.commons.settings import Settings, load_settings
 
 # ---------------------------------------------------------------------------
 # Settings model tests

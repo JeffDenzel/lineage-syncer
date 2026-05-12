@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import json
 import logging
 import sys
 
 import click
 from dotenv import load_dotenv
 
-from .auth import get_databricks_client, get_pbi_token
-from .exceptions import AuthenticationError
-from .settings import Settings, load_settings
+from .commons.exceptions import AuthenticationError, ScanTimeoutError
+from .commons.settings import Settings, load_settings
+from .orchestrators.pbi_scanner import ScannerClient
+from .services.auth import get_databricks_client, get_pbi_token
 
 load_dotenv()
 
@@ -27,7 +29,12 @@ logger = logging.getLogger(__name__)
     help="Override the DL_LOG_LEVEL environment variable.",
 )
 def cli(log_level: str | None) -> None:
-    """Defensive Lineage: Bridge Power BI into Databricks Unity Catalog."""
+    """Parent command for all CLI commands, formats logging structure for all commands,
+    and allows for optional log level override.
+
+    Args:
+        log_level (str | None): Override the DL_LOG_LEVEL environment variable.
+    """
     level = log_level or "INFO"
     logging.basicConfig(
         level=getattr(logging, level.upper(), logging.INFO),
@@ -45,33 +52,38 @@ def verify_auth() -> None:
     """Verify authentication to both Databricks and Power BI.
 
     Loads settings from environment variables, then attempts to acquire
-    tokens for both platforms. Prints a clear ✓/✗ status for each and
+    tokens for both platforms. Prints a clear success/failure status for each and
     exits with code 1 if any authentication fails.
+
+    Raises:
+        SystemExit: If settings loading fails or if authentication fails.
     """
     success = True
 
     # --- 1. Settings --------------------------------------------------------
     try:
         settings: Settings = load_settings()
-        click.echo("✓ Settings loaded from environment")
+        click.echo("[OK] Settings loaded from environment")
     except Exception as exc:  # noqa: BLE001 — pydantic ValidationError is not specific
-        click.echo(f"✗ Failed to load settings: {exc}", err=True)
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
         sys.exit(1)
 
     # --- 2. Databricks ------------------------------------------------------
     try:
         get_databricks_client(settings)
-        click.echo(f"✓ Databricks authenticated (workspace: {settings.databricks_host})")
+        click.echo(
+            f"[OK] Databricks authenticated (workspace: {settings.databricks_host})"
+        )
     except AuthenticationError as exc:
-        click.echo(f"✗ Databricks authentication failed: {exc}", err=True)
+        click.echo(f"[ERROR] Databricks authentication failed: {exc}", err=True)
         success = False
 
     # --- 3. Power BI --------------------------------------------------------
     try:
         get_pbi_token(settings)
-        click.echo("✓ Power BI token acquired")
+        click.echo("[OK] Power BI token acquired")
     except AuthenticationError as exc:
-        click.echo(f"✗ Power BI token acquisition failed: {exc}", err=True)
+        click.echo(f"[ERROR] Power BI token acquisition failed: {exc}", err=True)
         success = False
 
     # --- Summary ------------------------------------------------------------
@@ -86,60 +98,80 @@ def verify_auth() -> None:
 @cli.command()
 @click.option(
     "--output",
-    default="scan_output.json",
-    help="Path to save the raw JSON scan results.",
+    default="scan_output.jsonl",
+    help="Path to save the raw JSONL scan results.",
 )
 def scan(output: str) -> None:
-    """Run Power BI metadata extraction (Phase 2)."""
+    """Run Power BI metadata extraction (Phase 2).
+
+    Args:
+        output (str): Path to save the raw JSONL scan results.
+
+    Raises:
+        SystemExit: If settings loading, authentication, or scanning fails.
+    """
     try:
         settings: Settings = load_settings()
-        click.echo("✓ Settings loaded")
+        click.echo("[OK] Settings loaded")
     except Exception as exc:  # noqa: BLE001
-        click.echo(f"✗ Failed to load settings: {exc}", err=True)
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
         sys.exit(1)
-
-    from .exceptions import ScanTimeoutError
-    from .scanner import run_full_scan
-    import json
 
     try:
         click.echo("Starting Power BI scan flow...")
-        results = run_full_scan(settings)
-        
+        token = get_pbi_token(settings)
+        scanner = ScannerClient(token, settings)
+        workspaces = scanner.run_full_scan()
+
+        workspaces_count = 0
         with open(output, "w") as f:
-            json.dump(results, f, indent=2)
-            
-        workspaces_count = len(results.get("workspaces", []))
-        click.echo(f"✓ Scan completed successfully")
-        click.echo(f"✓ Processed {workspaces_count} workspaces with endorsed assets")
-        click.echo(f"✓ Results saved to {output}")
-        
+            for workspace in workspaces:
+                f.write(json.dumps(workspace) + "\n")
+                workspaces_count += 1
+
+        click.echo("[OK] Scan completed successfully")
+        click.echo(f"[OK] Processed {workspaces_count} workspaces with endorsed assets")
+        click.echo(f"[OK] Results saved to {output}")
+
     except AuthenticationError as exc:
-        click.echo(f"✗ Authentication failed: {exc}", err=True)
+        click.echo(f"[ERROR] Authentication failed: {exc}", err=True)
         sys.exit(1)
     except ScanTimeoutError as exc:
-        click.echo(f"✗ Scan failed: {exc}", err=True)
+        click.echo(f"[ERROR] Scan failed: {exc}", err=True)
         sys.exit(1)
     except Exception as exc:
-        click.echo(f"✗ Unexpected error: {exc}", err=True)
+        click.echo(f"[ERROR] Unexpected error: {exc}", err=True)
         sys.exit(1)
 
 
 @cli.command()
 def push() -> None:
-    """Push metadata to Databricks Unity Catalog (Phase 4)."""
+    """Push metadata to Databricks Unity Catalog (Phase 4).
+
+    Reads the local JSONL mappings and synchronizes them to Unity Catalog.
+    Currently a stub; not yet implemented.
+    """
     click.echo("Pushing to Databricks... (not yet implemented)")
 
 
 @cli.command()
 def sync() -> None:
-    """Run full pipeline: scan → transform → push (Phase 4)."""
+    """Run full pipeline: scan → transform → push (Phase 4).
+
+    Executes the entire end-to-end lineage extraction and injection process.
+    Currently a stub; not yet implemented.
+    """
     click.echo("Running full sync... (not yet implemented)")
 
 
 @cli.command("dry-run")
 def dry_run() -> None:
-    """Run full pipeline without writing to Databricks (Phase 4)."""
+    """Run full pipeline without writing to Databricks (Phase 4).
+
+    Executes the pipeline up to the transform phase, validating data but
+    preventing any mutations to Unity Catalog.
+    Currently a stub; not yet implemented.
+    """
     click.echo("Running dry-run... (not yet implemented)")
 
 

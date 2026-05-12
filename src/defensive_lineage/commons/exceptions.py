@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 class DefensiveLineageError(Exception):
-    """Base exception for all Defensive Lineage errors.
+    """Base exception for all exceptions.
 
     All project-specific exceptions inherit from this class so that
     callers can catch the entire exception hierarchy with a single
