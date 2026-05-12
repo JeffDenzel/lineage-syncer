@@ -108,9 +108,16 @@ def load_settings() -> Settings:
         ValidationError: If any required environment variable is missing or
             any value fails validation.
     """
+    # Check for missing required environment variables
+    missing = [key for key in _REQUIRED_VARS if key not in os.environ]
+    if missing:
+        raise ValidationError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
+
     # Collect required string fields
     str_fields: dict[str, str] = {
-        key.lower(): os.environ[key] for key in _REQUIRED_VARS if key in os.environ
+        key.lower(): os.environ[key] for key in _REQUIRED_VARS
     }
 
     # Collect and parse optional fields with their correct types
