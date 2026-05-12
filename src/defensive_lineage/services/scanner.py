@@ -141,7 +141,7 @@ def get_workspace_ids(
 
     # Can return an array of objects
     items = (
-        response if isinstance(response, list) else response.get("workspaces", response)
+        response if isinstance(response, list) else response.get("workspaces", [])
     )
 
     workspace_ids = []
@@ -194,7 +194,8 @@ def trigger_scan(token: str, workspace_ids: list[str]) -> list[str]:
 
         scan_id = response.get("id")
         if not scan_id:
-            raise ScanTimeoutError(f"Failed to get scan ID from response: {response}")
+            logger.error("Failed to get scan ID from response: %s", response)
+            raise ScanTimeoutError("Failed to get scan ID from API response")
 
         scan_ids.append(scan_id)
         logger.info(
@@ -240,6 +241,9 @@ def poll_scan_status(
 
         response = _pbi_request("GET", f"/workspaces/scanStatus/{scan_id}", token)
         status = response.get("status")
+
+        if status is None:
+            raise ScanTimeoutError(f"Scan {scan_id} returned null status")
 
         if status != last_status:
             logger.info("Scan %s status: %s -> %s", scan_id, last_status, status)

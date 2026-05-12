@@ -58,8 +58,6 @@ def get_databricks_client(settings: Settings) -> WorkspaceClient:
             getattr(me, "user_name", "unknown"),
         )
         return client
-    except AuthenticationError:
-        raise
     except Exception as exc:
         logger.error("Databricks authentication failed: %s", exc)
         raise AuthenticationError(f"Databricks auth failed: {exc}") from exc
