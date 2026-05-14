@@ -7,9 +7,7 @@ from pydantic import BaseModel, ValidationError, field_validator
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Public constants
-# ---------------------------------------------------------------------------
+# --- Public constants ---
 
 _REQUIRED_VARS: tuple[str, ...] = (
     "AZURE_TENANT_ID",
@@ -21,10 +19,7 @@ _REQUIRED_VARS: tuple[str, ...] = (
 )
 
 
-# ---------------------------------------------------------------------------
-# Settings model
-# ---------------------------------------------------------------------------
-
+# --- Settings model ---
 
 class Settings(BaseModel):
     """Validated configuration loaded from environment variables.
@@ -89,10 +84,7 @@ class Settings(BaseModel):
         return upper
 
 
-# ---------------------------------------------------------------------------
-# Factory function
-# ---------------------------------------------------------------------------
-
+# --- Factory function ---
 
 def load_settings() -> Settings:
     """Load and validate application settings from environment variables.

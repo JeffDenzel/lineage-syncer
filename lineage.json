@@ -1,0 +1,35 @@
+[
+  {
+    "pbi_workspace_id": "fc14df80-4a17-495d-b0c8-057a6b63a8b0",
+    "pbi_workspace_name": "Workspace1",
+    "pbi_report_id": "1a21c55c-c737-46d9-9f1a-8f0a123d2c8d",
+    "pbi_report_name": "DB_RP1",
+    "pbi_dataset_id": "1a21c55c-c737-46d9-9f1a-8f0a123d2c8d",
+    "pbi_dataset_name": "DB_RP1",
+    "endorsement": "Promoted",
+    "connection_mode": "PbixInDirectQueryMode",
+    "storage_mode": "Abf",
+    "databricks_catalog": "rearc_daily_weather_observations_noaa",
+    "databricks_schema": "esg_noaa_ghcn",
+    "databricks_table": "noaa_ghcn_daily",
+    "columns": [
+      "station",
+      "date",
+      "latitude",
+      "longitude",
+      "elevation",
+      "name",
+      "precipitation",
+      "precipitation_attrs",
+      "snowfall",
+      "snowfall_attrs",
+      "snow_depth",
+      "snow_depth_attrs",
+      "temp_max",
+      "temp_max_attrs",
+      "temp_min",
+      "temp_min_attrs",
+      "group_"
+    ]
+  }
+]

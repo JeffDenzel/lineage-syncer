@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterator
 
+from ..commons.settings import Settings
 from ..services.scanner import (
     get_scan_results,
     get_workspace_ids,
     poll_scan_status,
     trigger_scan,
 )
-from ..commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -66,3 +66,27 @@ class ScannerClient:
 
             for workspace in workspaces:
                 yield workspace
+
+    def get_full_scan_result(self) -> dict[str, Any]:
+        """Execute full scan and return aggregated result for transform.
+
+        Aggregates all yielded workspaces and datasourceInstances into a
+        single dict matching the Scanner API response format expected by
+        normalize_pbi_scan_result().
+
+        Returns:
+            dict[str, Any]: Dict with 'workspaces' and 'datasourceInstances' keys.
+        """
+        all_workspaces: list[dict[str, Any]] = []
+        all_datasource_instances: list[dict[str, Any]] = []
+
+        for item in self.run_full_scan():
+            if item.get("type") == "datasourceInstances":
+                all_datasource_instances.extend(item.get("instances", []))
+            else:
+                all_workspaces.append(item)
+
+        return {
+            "workspaces": all_workspaces,
+            "datasourceInstances": all_datasource_instances,
+        }

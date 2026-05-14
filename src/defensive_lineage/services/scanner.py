@@ -17,9 +17,7 @@ from ..commons.exceptions import ScanTimeoutError
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+# --- Constants ---
 
 PBI_ADMIN_BASE_URL = "https://api.powerbi.com/v1.0/myorg/admin"
 
@@ -37,10 +35,7 @@ class RateLimitError(Exception):
     pass
 
 
-# ---------------------------------------------------------------------------
-# HTTP Helper
-# ---------------------------------------------------------------------------
-
+# --- HTTP Helper ---
 
 @retry(
     stop=stop_after_attempt(MAX_RETRIES),
@@ -107,10 +102,7 @@ def _pbi_request(
         return {}
 
 
-# ---------------------------------------------------------------------------
-# API Functions
-# ---------------------------------------------------------------------------
-
+# --- API Functions ---
 
 def get_workspace_ids(
     token: str,
@@ -139,7 +131,6 @@ def get_workspace_ids(
 
     response = _pbi_request("GET", "/workspaces/modified", token, params=params)
 
-    # Can return an array of objects
     items = (
         response if isinstance(response, list) else response.get("workspaces", [])
     )
@@ -175,7 +166,6 @@ def trigger_scan(token: str, workspace_ids: list[str]) -> list[str]:
 
     scan_ids = []
 
-    # Batch into groups of 100
     for i in range(0, len(workspace_ids), _MAX_WORKSPACES_PER_SCAN):
         batch = workspace_ids[i : i + _MAX_WORKSPACES_PER_SCAN]
 

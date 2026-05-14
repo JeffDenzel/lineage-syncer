@@ -197,14 +197,15 @@ def test_get_scan_results_filters_endorsed() -> None:
     )
     results = get_scan_results(FAKE_TOKEN, "test-scan-id")
     workspaces = results["workspaces"]
-    assert len(workspaces) == 1
+    # Fixture has 2 workspaces with endorsed content
+    assert len(workspaces) == 2
 
-    ws = workspaces[0]
-    assert len(ws["reports"]) == 1
-    assert ws["reports"][0]["name"] == "CompositeModelParams-RLS"
-
-    assert len(ws["datasets"]) == 1
-    assert ws["datasets"][0]["name"] == "ExportB"
+    # First workspace: FinanceWorkspace has 2 endorsed reports, 2 endorsed datasets
+    ws1 = workspaces[0]
+    assert len(ws1["reports"]) == 2
+    assert ws1["reports"][0]["name"] == "Q3 Revenue Report"
+    assert len(ws1["datasets"]) == 2
+    assert ws1["datasets"][0]["name"] == "finance_model"
 
 
 @resp.activate

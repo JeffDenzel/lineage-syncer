@@ -10,19 +10,14 @@ from ..commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
+# --- Constants ---
 
 PBI_SCOPE = "https://analysis.windows.net/powerbi/api/.default"
 _ENTRA_TOKEN_URL = "https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 _REQUEST_TIMEOUT_SECONDS = 30
 
 
-# ---------------------------------------------------------------------------
-# Public functions
-# ---------------------------------------------------------------------------
-
+# --- Public functions ---
 
 def get_databricks_client(settings: Settings) -> WorkspaceClient:
     """Initialize and validate an authenticated Databricks WorkspaceClient.

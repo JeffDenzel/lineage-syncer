@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class LineageMapping(BaseModel):
@@ -14,12 +14,15 @@ class LineageMapping(BaseModel):
         pbi_dataset_id (str): The unique GUID of the underlying Power BI dataset.
         pbi_dataset_name (str): The display name of the Power BI dataset.
         endorsement (str): The endorsement status (ex:"Certified", "Promoted").
-        connection_mode (str): The dataset connection mode (ex:"DirectQuery", "Import").
+        connection_mode (str): The content provider type (ex:"PbixInDirectQueryMode").
+        storage_mode (str): The dataset storage mode (ex:"Abf", "DirectQuery").
         databricks_catalog (str): The Unity Catalog catalog name.
         databricks_schema (str): The Unity Catalog schema name.
         databricks_table (str): The Unity Catalog table name.
         columns (list[str]): List of column names used in the dataset.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     # Power BI side
     pbi_workspace_id: str
@@ -29,10 +32,21 @@ class LineageMapping(BaseModel):
     pbi_dataset_id: str
     pbi_dataset_name: str
     endorsement: str
-    connection_mode: str
+    connection_mode: str  # From contentProviderType (e.g., PbixInDirectQueryMode)
+    storage_mode: str  # From targetStorageMode (e.g., Abf, DirectQuery)
 
     # Databricks side
     databricks_catalog: str
     databricks_schema: str
     databricks_table: str
     columns: list[str]
+
+    @field_validator("endorsement")
+    @classmethod
+    def validate_endorsement(cls, v: str) -> str:
+        """Validate that endorsement is either 'Certified' or 'Promoted'."""
+        allowed = {"Certified", "Promoted"}
+        if v not in allowed:
+            raise ValueError(f"endorsement must be one of {allowed}, got {v}")
+        return v
+

@@ -2,7 +2,7 @@
   "workspaces": [
     {
       "id": "e7d03602-4873-4760-b37e-1563ef5358e3",
-      "name": "TestWorkspace",
+      "name": "FinanceWorkspace",
       "type": "Workspace",
       "state": "Active",
       "dataRetrievalState": "Enabled",
@@ -10,8 +10,95 @@
       "reports": [
         {
           "id": "rep-1",
-          "name": "CompositeModelParams-RLS",
-          "displayName": "Test Report",
+          "name": "Q3 Revenue Report",
+          "displayName": "Q3 Revenue",
+          "datasetId": "ds-1",
+          "endorsementDetails": {
+            "endorsement": "Certified"
+          }
+        },
+        {
+          "id": "rep-2",
+          "name": "Expenses Dashboard",
+          "displayName": "Monthly Expenses",
+          "datasetId": "ds-2",
+          "endorsementDetails": {
+            "endorsement": "Promoted"
+          }
+        }
+      ],
+      "datasets": [
+        {
+          "id": "ds-1",
+          "name": "finance_model",
+          "endorsementDetails": {
+            "endorsement": "Certified"
+          },
+          "targetStorageMode": "Abf",
+          "contentProviderType": "PbixInDirectQueryMode",
+          "datasourceUsages": [
+            {
+              "datasourceInstanceId": "dsi-1"
+            }
+          ],
+          "tables": [
+            {
+              "name": "revenue",
+              "columns": [
+                {"name": "amount"},
+                {"name": "region"},
+                {"name": "quarter"}
+              ]
+            },
+            {
+              "name": "costs",
+              "columns": [
+                {"name": "cost_center"},
+                {"name": "amount"}
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ds-2",
+          "name": "expenses_dataset",
+          "endorsementDetails": {
+            "endorsement": "Promoted"
+          },
+          "targetStorageMode": "Import",
+          "contentProviderType": "Import",
+          "datasourceUsages": [
+            {
+              "datasourceInstanceId": "dsi-2"
+            }
+          ],
+          "tables": [
+            {
+              "name": "finance.expenses",
+              "columns": [
+                {"name": "expense_id"},
+                {"name": "category"},
+                {"name": "amount"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "SalesWorkspace",
+      "type": "Workspace",
+      "state": "Active",
+      "dataRetrievalState": "Enabled",
+      "isOnDedicatedCapacity": false,
+      "reports": [
+        {
+          "id": "rep-3",
+          "name": "Sales Pipeline",
+          "displayName": "Sales Pipeline 2024",
+          "datasetId": "ds-3",
+          "datasetWorkspaceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           "endorsementDetails": {
             "endorsement": "Certified"
           }
@@ -19,22 +106,84 @@
       ],
       "datasets": [
         {
-          "id": "ds-1",
-          "name": "ExportB",
+          "id": "ds-3",
+          "name": "sales_pipeline",
           "endorsementDetails": {
-            "endorsement": "Promoted"
-          }
+            "endorsement": "Certified"
+          },
+          "targetStorageMode": "Abf",
+          "contentProviderType": "PbixInDirectQueryMode",
+          "datasourceUsages": [
+            {
+              "datasourceInstanceId": "dsi-3"
+            }
+          ],
+          "tables": [
+            {
+              "name": "opportunities",
+              "columns": []
+            }
+          ]
+        },
+        {
+          "id": "ds-4",
+          "name": "unendorsed_dataset",
+          "targetStorageMode": "Import",
+          "contentProviderType": "Import",
+          "datasourceUsages": [
+            {
+              "datasourceInstanceId": "dsi-4"
+            }
+          ],
+          "tables": [
+            {
+              "name": "draft_data",
+              "columns": [{"name": "temp_col"}]
+            }
+          ]
         }
       ]
     }
   ],
   "datasourceInstances": [
     {
-      "datasourceInstanceId": "c93ec4f7-8f0d-490e-af6d-7afa15bc18ce",
+      "datasourceInstanceId": "dsi-1",
       "datasourceType": "Sql",
       "connectionDetails": {
-        "server": "test-server.azuredatabricks.net",
-        "database": "test_db"
+        "server": "adb-123456789.1.azuredatabricks.net",
+        "database": "gold"
+      }
+    },
+    {
+      "datasourceInstanceId": "dsi-2",
+      "datasourceType": "Sql",
+      "connectionDetails": {
+        "server": "adb-123456789.1.azuredatabricks.net",
+        "database": "gold.finance"
+      }
+    },
+    {
+      "datasourceInstanceId": "dsi-3",
+      "datasourceType": "Sql",
+      "connectionDetails": {
+        "server": "adb-123456789.1.azuredatabricks.net",
+        "database": "silver"
+      }
+    },
+    {
+      "datasourceInstanceId": "dsi-4",
+      "datasourceType": "Sql",
+      "connectionDetails": {
+        "server": "adb-123456789.1.azuredatabricks.net",
+        "database": "bronze"
+      }
+    },
+    {
+      "datasourceInstanceId": "dsi-5",
+      "datasourceType": "Sql",
+      "connectionDetails": {
+        "server": "some-sql-server.database.windows.net",
+        "database": "legacy_db"
       }
     }
   ]

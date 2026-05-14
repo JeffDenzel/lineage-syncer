@@ -8,19 +8,18 @@ import click
 from dotenv import load_dotenv
 
 from .commons.exceptions import AuthenticationError, ScanTimeoutError
+from .commons.models import LineageMapping
 from .commons.settings import Settings, load_settings
 from .orchestrators.pbi_scanner import ScannerClient
 from .services.auth import get_databricks_client, get_pbi_token
+from .services.transform import normalize_pbi_scan_result
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# CLI group
-# ---------------------------------------------------------------------------
-
+# --- CLI group ---
 
 @click.group()
 @click.option(
@@ -42,10 +41,7 @@ def cli(log_level: str | None) -> None:
     )
 
 
-# ---------------------------------------------------------------------------
-# Commands
-# ---------------------------------------------------------------------------
-
+# --- Commands ---
 
 @cli.command("verify-auth")
 def verify_auth() -> None:
@@ -60,7 +56,6 @@ def verify_auth() -> None:
     """
     success = True
 
-    # --- 1. Settings --------------------------------------------------------
     try:
         settings: Settings = load_settings()
         click.echo("[OK] Settings loaded from environment")
@@ -68,7 +63,6 @@ def verify_auth() -> None:
         click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
         sys.exit(1)
 
-    # --- 2. Databricks ------------------------------------------------------
     try:
         get_databricks_client(settings)
         click.echo(
@@ -78,7 +72,6 @@ def verify_auth() -> None:
         click.echo(f"[ERROR] Databricks authentication failed: {exc}", err=True)
         success = False
 
-    # --- 3. Power BI --------------------------------------------------------
     try:
         get_pbi_token(settings)
         click.echo("[OK] Power BI token acquired")
@@ -86,7 +79,6 @@ def verify_auth() -> None:
         click.echo(f"[ERROR] Power BI token acquisition failed: {exc}", err=True)
         success = False
 
-    # --- Summary ------------------------------------------------------------
     click.echo("")
     if success:
         click.echo("All systems authenticated successfully.")
@@ -105,10 +97,7 @@ def scan(output: str) -> None:
     """Run Power BI metadata extraction (Phase 2).
 
     Args:
-        output (str): Path to save the raw JSONL scan results.
-
-    Raises:
-        SystemExit: If settings loading, authentication, or scanning fails.
+        output: Path to save the raw JSONL scan results.
     """
     try:
         settings: Settings = load_settings()
@@ -145,6 +134,53 @@ def scan(output: str) -> None:
 
 
 @cli.command()
+@click.option(
+    "--output",
+    default="lineage_mappings.json",
+    help="Path to save the transformed lineage mappings JSON.",
+)
+def transform(output: str) -> None:
+    """Transform scan results into lineage mappings (Phase 3).
+
+    Args:
+        output: Path to save the transformed lineage mappings JSON.
+    """
+    try:
+        settings: Settings = load_settings()
+        click.echo("[OK] Settings loaded")
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
+        sys.exit(1)
+
+    try:
+        click.echo("Starting Power BI scan...")
+        token = get_pbi_token(settings)
+        scanner = ScannerClient(token, settings)
+        scan_result = scanner.get_full_scan_result()
+
+        click.echo(f"[OK] Scan complete: {len(scan_result['workspaces'])} workspaces")
+
+        click.echo("Transforming to lineage mappings...")
+        mappings: list[LineageMapping] = normalize_pbi_scan_result(scan_result)
+
+        with open(output, "w") as f:
+            json.dump([m.model_dump() for m in mappings], f, indent=2)
+
+        click.echo(f"[OK] Transformed {len(mappings)} lineage mappings")
+        click.echo(f"[OK] Results saved to {output}")
+
+    except AuthenticationError as exc:
+        click.echo(f"[ERROR] Authentication failed: {exc}", err=True)
+        sys.exit(1)
+    except ScanTimeoutError as exc:
+        click.echo(f"[ERROR] Scan failed: {exc}", err=True)
+        sys.exit(1)
+    except Exception as exc:
+        click.echo(f"[ERROR] Unexpected error: {exc}", err=True)
+        sys.exit(1)
+
+
+@cli.command()
 def push() -> None:
     """Push metadata to Databricks Unity Catalog (Phase 4).
 
@@ -159,26 +195,87 @@ def sync() -> None:
     """Run full pipeline: scan → transform → push (Phase 4).
 
     Executes the entire end-to-end lineage extraction and injection process.
-    Currently a stub; not yet implemented.
+    Currently transform-only; push is not yet implemented.
     """
-    click.echo("Running full sync... (not yet implemented)")
+    try:
+        settings: Settings = load_settings()
+        click.echo("[OK] Settings loaded")
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
+        sys.exit(1)
+
+    try:
+        click.echo("=== Phase 1-2: Scan ===")
+        token = get_pbi_token(settings)
+        scanner = ScannerClient(token, settings)
+        scan_result = scanner.get_full_scan_result()
+        click.echo(
+            f"[OK] Scan complete: {len(scan_result['workspaces'])} workspaces, "
+            f"{len(scan_result['datasourceInstances'])} datasources"
+        )
+
+        click.echo("\n=== Phase 3: Transform ===")
+        mappings: list[LineageMapping] = normalize_pbi_scan_result(scan_result)
+        click.echo(f"[OK] Transformed {len(mappings)} lineage mappings")
+
+        click.echo("\n=== Phase 4: Push ===")
+        click.echo("(Push to Unity Catalog not yet implemented)")
+
+    except AuthenticationError as exc:
+        click.echo(f"[ERROR] Authentication failed: {exc}", err=True)
+        sys.exit(1)
+    except ScanTimeoutError as exc:
+        click.echo(f"[ERROR] Scan failed: {exc}", err=True)
+        sys.exit(1)
+    except Exception as exc:
+        click.echo(f"[ERROR] Unexpected error: {exc}", err=True)
+        sys.exit(1)
 
 
 @cli.command("dry-run")
 def dry_run() -> None:
     """Run full pipeline without writing to Databricks (Phase 4).
 
-    Executes the pipeline up to the transform phase, validating data but
-    preventing any mutations to Unity Catalog.
-    Currently a stub; not yet implemented.
+    Executes scan → transform, validating the full pipeline without
+    pushing to Unity Catalog.
     """
-    click.echo("Running dry-run... (not yet implemented)")
+    try:
+        settings: Settings = load_settings()
+        click.echo("[OK] Settings loaded")
+    except Exception as exc:  # noqa: BLE001
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
+        sys.exit(1)
+
+    try:
+        click.echo("=== Phase 1-2: Scan ===")
+        token = get_pbi_token(settings)
+        scanner = ScannerClient(token, settings)
+        scan_result = scanner.get_full_scan_result()
+        click.echo(
+            f"[OK] Scan complete: {len(scan_result['workspaces'])} workspaces, "
+            f"{len(scan_result['datasourceInstances'])} datasources"
+        )
+
+        click.echo("\n=== Phase 3: Transform ===")
+        mappings: list[LineageMapping] = normalize_pbi_scan_result(scan_result)
+        click.echo(f"[OK] Transformed {len(mappings)} lineage mappings")
+
+        click.echo("\n=== Dry Run Complete ===")
+        click.echo(f"Would push {len(mappings)} mappings to Unity Catalog")
+        click.echo("(No changes made - dry run mode)")
+
+    except AuthenticationError as exc:
+        click.echo(f"[ERROR] Authentication failed: {exc}", err=True)
+        sys.exit(1)
+    except ScanTimeoutError as exc:
+        click.echo(f"[ERROR] Scan failed: {exc}", err=True)
+        sys.exit(1)
+    except Exception as exc:
+        click.echo(f"[ERROR] Unexpected error: {exc}", err=True)
+        sys.exit(1)
 
 
-# ---------------------------------------------------------------------------
-# Entrypoint
-# ---------------------------------------------------------------------------
-
+# --- Entrypoint ---
 
 def main() -> None:
     """CLI entrypoint registered in pyproject.toml."""

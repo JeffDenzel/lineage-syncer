@@ -6,6 +6,40 @@
 
 ## Prerequisites
 
+### Power BI Admin Portal Configuration (REQUIRED)
+
+The Power BI Scanner API requires specific tenant settings to return table-level metadata. Without these, datasets will show 0 tables and no lineage can be extracted.
+
+**Required Settings:**
+
+1. **Enhance admin APIs responses with detailed metadata**
+   - Location: Power BI Admin Portal → Tenant settings → Admin API settings
+   - Must be **Enabled** for the entire organization or specific security groups
+   - This allows the API to return `tables[]`, `columns[]`, and relationship metadata
+
+2. **Allow service principals to use read-only Power BI admin APIs**
+   - Location: Power BI Admin Portal → Tenant settings → Admin API settings
+   - Must be **Enabled** for the service principal running the scan
+   - Required for programmatic access to scanner results
+
+3. **Apply dataset permissions to read-only admins** (Recommended)
+   - Location: Power BI Admin Portal → Tenant settings → Admin API settings
+   - Enable to ensure scanner can access all workspace datasets
+
+**Verification:**
+Run `defensive-lineage scan --output test.jsonl` and check that datasets have `tables` with column definitions:
+```json
+"tables": [
+  {"name": "sales", "columns": [{"name": "amount"}, {"name": "date"}]}
+]
+```
+
+If `tables` is empty `[]`, the tenant settings are not configured correctly.
+
+---
+
+### Development Prerequisites
+
 - [x] Phase 1 complete — authentication working
 - [X] Phase 2 complete — `scan_output.json` produced with endorsed workspace metadata
 - [x] `LineageMapping` model defined in `transform.py` skeleton
