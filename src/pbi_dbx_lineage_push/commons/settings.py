@@ -103,7 +103,7 @@ def load_settings() -> Settings:
     # Check for missing required environment variables
     missing = [key for key in _REQUIRED_VARS if key not in os.environ]
     if missing:
-        raise ValidationError(
+        raise ValueError(
             f"Missing required environment variables: {', '.join(missing)}"
         )
 

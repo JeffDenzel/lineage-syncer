@@ -1,7 +1,7 @@
 [project]
-name = "defensive-lineage"
+name = "pbi-dbx-lineage-push"
 version = "0.1.0"
-description = "Bridge Power BI lineage into Databricks Unity Catalog"
+description = "Push Power BI lineage to Databricks Unity Catalog"
 readme = "README.md"
 requires-python = ">=3.14"
 authors = [
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-defensive-lineage = "defensive_lineage.cli:main"
+pbi-dbx-lineage-push = "pbi_dbx_lineage_push.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

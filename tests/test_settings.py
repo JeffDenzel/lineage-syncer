@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from defensive_lineage.commons.settings import Settings, load_settings
+from pbi_dbx_lineage_push.commons.settings import Settings, load_settings
 
 # ---------------------------------------------------------------------------
 # Settings model tests
@@ -81,7 +81,7 @@ def test_load_settings_raises_on_missing_databricks_host() -> None:
         "DATABRICKS_CLIENT_SECRET": "dbx-secret",
     }
     with patch.dict(os.environ, env, clear=True):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError):
             load_settings()
 
 
@@ -96,7 +96,7 @@ def test_load_settings_raises_on_missing_azure_secret() -> None:
         "DATABRICKS_CLIENT_SECRET": "dbx-secret",
     }
     with patch.dict(os.environ, env, clear=True):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError):
             load_settings()
 
 
@@ -142,5 +142,6 @@ def test_settings_is_frozen() -> None:
         databricks_client_id="d",
         databricks_client_secret="ds",
     )
-    with pytest.raises(Exception):  # ValidationError or TypeError depending on pydantic version
+    # Frozen model raises TypeError when attempting to modify
+    with pytest.raises(TypeError):
         settings.dl_log_level = "DEBUG"  # type: ignore[misc]

@@ -16,15 +16,18 @@ The Power BI Scanner API requires specific tenant settings to return table-level
    - Location: Power BI Admin Portal → Tenant settings → Admin API settings
    - Must be **Enabled** for the entire organization or specific security groups
    - This allows the API to return `tables[]`, `columns[]`, and relationship metadata
+   - Above should not be done if you don't want to expose metadata. This should be considered for sensitive data environments*
 
 2. **Allow service principals to use read-only Power BI admin APIs**
    - Location: Power BI Admin Portal → Tenant settings → Admin API settings
    - Must be **Enabled** for the service principal running the scan
    - Required for programmatic access to scanner results
+   - Consider the risks of allowing service principals to access Power BI admin APIs*
 
 3. **Apply dataset permissions to read-only admins** (Recommended)
    - Location: Power BI Admin Portal → Tenant settings → Admin API settings
    - Enable to ensure scanner can access all workspace datasets
+   - Do take into account the risk of read-only admins bypassing the security boundaries that are set on workspace-level*
 
 **Verification:**
 Run `defensive-lineage scan --output test.jsonl` and check that datasets have `tables` with column definitions:

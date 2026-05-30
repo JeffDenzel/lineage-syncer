@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from defensive_lineage.commons.models import LineageMapping
-from defensive_lineage.services.transform import (
+from pbi_dbx_lineage_push.commons.models import LineageMapping
+from pbi_dbx_lineage_push.services.transform import (
     _build_datasource_index,
     _parse_databricks_coordinate,
     normalize_pbi_scan_result,

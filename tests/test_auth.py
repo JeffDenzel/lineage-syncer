@@ -5,9 +5,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 import responses as resp
 
-from defensive_lineage.commons.exceptions import AuthenticationError
-from defensive_lineage.commons.settings import Settings
-from defensive_lineage.services.auth import (
+from pbi_dbx_lineage_push.commons.exceptions import AuthenticationError
+from pbi_dbx_lineage_push.commons.settings import Settings
+from pbi_dbx_lineage_push.services.auth import (
     PBI_SCOPE,
     get_databricks_client,
     get_pbi_token,
@@ -141,7 +141,7 @@ def test_get_databricks_client_returns_client(settings: Settings) -> None:
     mock_me = MagicMock()
     mock_me.user_name = "service-principal@tenant.com"
 
-    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
+    with patch("pbi_dbx_lineage_push.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_client = MagicMock()
         mock_client.current_user.me.return_value = mock_me
         mock_ws_cls.return_value = mock_client
@@ -159,7 +159,7 @@ def test_get_databricks_client_returns_client(settings: Settings) -> None:
 
 def test_get_databricks_client_raises_on_auth_failure(settings: Settings) -> None:
     """Error path: WorkspaceClient constructor raises → AuthenticationError."""
-    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
+    with patch("pbi_dbx_lineage_push.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_ws_cls.side_effect = ValueError("invalid credentials")
 
         with pytest.raises(AuthenticationError, match="Databricks auth failed"):
@@ -168,7 +168,7 @@ def test_get_databricks_client_raises_on_auth_failure(settings: Settings) -> Non
 
 def test_get_databricks_client_raises_on_me_failure(settings: Settings) -> None:
     """Error path: current_user.me() raises, raises AuthenticationError."""
-    with patch("defensive_lineage.services.auth.WorkspaceClient") as mock_ws_cls:
+    with patch("pbi_dbx_lineage_push.services.auth.WorkspaceClient") as mock_ws_cls:
         mock_client = MagicMock()
         mock_client.current_user.me.side_effect = PermissionError("Not authorized")
         mock_ws_cls.return_value = mock_client

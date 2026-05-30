@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from defensive_lineage.commons.settings import Settings
+from pbi_dbx_lineage_push.commons.settings import Settings
 
 
 @pytest.fixture()

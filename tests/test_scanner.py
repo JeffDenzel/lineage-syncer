@@ -7,10 +7,10 @@ from unittest.mock import patch
 import pytest
 import responses as resp
 
-from defensive_lineage.commons.exceptions import ScanTimeoutError
-from defensive_lineage.commons.settings import Settings
-from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
-from defensive_lineage.services.scanner import (
+from pbi_dbx_lineage_push.commons.exceptions import ScanTimeoutError
+from pbi_dbx_lineage_push.commons.settings import Settings
+from pbi_dbx_lineage_push.orchestrators.pbi_scanner import ScannerClient
+from pbi_dbx_lineage_push.services.scanner import (
     PBI_ADMIN_BASE_URL,
     RateLimitError,
     get_scan_results,
@@ -140,7 +140,7 @@ def test_trigger_scan_raises_on_api_error() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.01)
+@patch("pbi_dbx_lineage_push.services.scanner._POLL_INTERVAL_SECONDS", 0.01)
 def test_poll_scan_status_succeeds() -> None:
     resp.add(
         resp.GET,
@@ -160,7 +160,7 @@ def test_poll_scan_status_succeeds() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.1)
+@patch("pbi_dbx_lineage_push.services.scanner._POLL_INTERVAL_SECONDS", 0.1)
 def test_poll_scan_status_timeout() -> None:
     resp.add(
         resp.GET,
@@ -227,7 +227,7 @@ def test_get_scan_results_no_endorsed() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("pbi_dbx_lineage_push.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_retries_on_429() -> None:
     resp.add(
         resp.GET,
@@ -250,7 +250,7 @@ def test_pbi_request_retries_on_429() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("pbi_dbx_lineage_push.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_exhausts_retries() -> None:
     resp.add(
         resp.GET,
@@ -266,16 +266,16 @@ def test_pbi_request_exhausts_retries() -> None:
 
 @resp.activate
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.get_workspace_ids",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.trigger_scan",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
-@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch("pbi_dbx_lineage_push.orchestrators.pbi_scanner.poll_scan_status")
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.get_scan_results",
     return_value=FIXTURE_SCAN_RESULT,
 )
 def test_run_full_scan_yields_datasource_instances(
@@ -288,27 +288,25 @@ def test_run_full_scan_yields_datasource_instances(
     scanner = ScannerClient(FAKE_TOKEN, settings)
     results = list(scanner.run_full_scan())
 
-    assert len(results) == 2
+    assert len(results) == 3
     assert results[0]["type"] == "datasourceInstances"
-    assert len(results[0]["instances"]) == 1
-    assert results[0]["instances"][0]["datasourceInstanceId"] == (
-        "c93ec4f7-8f0d-490e-af6d-7afa15bc18ce"
-    )
-    assert len(results[1]["datasets"]) == 1
+    assert len(results[0]["instances"]) == 5
+    assert results[0]["instances"][0]["datasourceInstanceId"] == "dsi-1"
+    assert len(results[1]["datasets"]) == 2
 
 
 @resp.activate
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.get_workspace_ids",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.trigger_scan",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
-@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch("pbi_dbx_lineage_push.orchestrators.pbi_scanner.poll_scan_status")
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    "pbi_dbx_lineage_push.orchestrators.pbi_scanner.get_scan_results",
     return_value={"workspaces": FIXTURE_SCAN_RESULT["workspaces"]},
 )
 def test_run_full_scan_handles_empty_datasource_instances(
@@ -321,5 +319,5 @@ def test_run_full_scan_handles_empty_datasource_instances(
     scanner = ScannerClient(FAKE_TOKEN, settings)
     results = list(scanner.run_full_scan())
 
-    assert len(results) == 1
-    assert len(results[0]["datasets"]) == 1
+    assert len(results) == 2
+    assert len(results[0]["datasets"]) == 2

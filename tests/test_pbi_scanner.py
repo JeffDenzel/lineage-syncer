@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from defensive_lineage.commons.settings import Settings
-from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
+from pbi_dbx_lineage_push.commons.settings import Settings
+from pbi_dbx_lineage_push.orchestrators.pbi_scanner import ScannerClient
 
 
 @pytest.fixture
