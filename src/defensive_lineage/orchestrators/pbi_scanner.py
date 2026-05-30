@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Any, Iterator
 
+from ..commons.settings import Settings
 from ..services.scanner import (
     get_scan_results,
     get_workspace_ids,
     poll_scan_status,
     trigger_scan,
 )
-from ..commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 

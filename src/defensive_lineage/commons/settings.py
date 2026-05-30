@@ -105,13 +105,13 @@ def load_settings() -> Settings:
         A validated, immutable ``Settings`` instance.
 
     Raises:
-        ValidationError: If any required environment variable is missing or
-            any value fails validation.
+        ValueError: If any required environment variable is missing.
+        ValidationError: If any present value fails Pydantic validation.
     """
     # Check for missing required environment variables
     missing = [key for key in _REQUIRED_VARS if key not in os.environ]
     if missing:
-        raise ValidationError(
+        raise ValueError(
             f"Missing required environment variables: {', '.join(missing)}"
         )
 
