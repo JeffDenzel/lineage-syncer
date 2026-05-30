@@ -6,9 +6,10 @@ import sys
 
 import click
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 from .commons.exceptions import AuthenticationError, ScanTimeoutError
-from .commons.models import LineageMapping
+from .commons.models import LineageMapping, PushSummary
 from .commons.settings import Settings, load_settings
 from .orchestrators.pbi_scanner import ScannerClient
 from .orchestrators.uc_pusher import DatabricksLineageClient
@@ -50,6 +51,24 @@ def cli(log_level: str | None) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _load_settings_or_exit() -> Settings:
+    """Load settings from the environment, exiting with code 1 on failure.
+
+    Returns:
+        Settings: The validated application settings.
+
+    Raises:
+        SystemExit: If any required environment variable is missing or invalid.
+    """
+    try:
+        settings = load_settings()
+    except (ValueError, ValidationError) as exc:
+        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
+        sys.exit(1)
+    click.echo("[OK] Settings loaded")
+    return settings
+
+
 @cli.command("verify-auth")
 def verify_auth() -> None:
     """Verify authentication to both Databricks and Power BI.
@@ -64,12 +83,7 @@ def verify_auth() -> None:
     success = True
 
     # --- 1. Settings --------------------------------------------------------
-    try:
-        settings: Settings = load_settings()
-        click.echo("[OK] Settings loaded from environment")
-    except Exception as exc:  # noqa: BLE001 — pydantic ValidationError is not specific
-        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
-        sys.exit(1)
+    settings = _load_settings_or_exit()
 
     # --- 2. Databricks ------------------------------------------------------
     try:
@@ -113,12 +127,7 @@ def scan(output: str) -> None:
     Raises:
         SystemExit: If settings loading, authentication, or scanning fails.
     """
-    try:
-        settings: Settings = load_settings()
-        click.echo("[OK] Settings loaded")
-    except Exception as exc:  # noqa: BLE001
-        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
-        sys.exit(1)
+    settings = _load_settings_or_exit()
 
     try:
         click.echo("Starting Power BI scan flow...")
@@ -250,11 +259,11 @@ def _scan_and_transform(settings: Settings) -> list[LineageMapping]:
     )
 
 
-def _echo_push_summary(summary: object) -> None:
+def _echo_push_summary(summary: PushSummary) -> None:
     """Print a PushSummary to the console.
 
     Args:
-        summary (object): A ``PushSummary`` instance.
+        summary (PushSummary): The result counts from a push operation.
     """
     click.echo(
         f"[OK] Push complete: {summary.succeeded} succeeded, "
@@ -291,12 +300,7 @@ def push(input_path: str, dry_run: bool) -> None:
     Raises:
         SystemExit: If settings, auth, or input loading fails.
     """
-    try:
-        settings: Settings = load_settings()
-        click.echo("[OK] Settings loaded")
-    except Exception as exc:  # noqa: BLE001
-        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
-        sys.exit(1)
+    settings = _load_settings_or_exit()
 
     try:
         mappings = _load_mappings(input_path)
@@ -327,12 +331,7 @@ def sync() -> None:
     Raises:
         SystemExit: If settings, auth, scanning, or pushing fails.
     """
-    try:
-        settings: Settings = load_settings()
-        click.echo("[OK] Settings loaded")
-    except Exception as exc:  # noqa: BLE001
-        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
-        sys.exit(1)
+    settings = _load_settings_or_exit()
 
     try:
         click.echo("Running full sync (scan -> transform -> push)...")
@@ -364,12 +363,7 @@ def dry_run() -> None:
     Raises:
         SystemExit: If settings, auth, or scanning fails.
     """
-    try:
-        settings: Settings = load_settings()
-        click.echo("[OK] Settings loaded")
-    except Exception as exc:  # noqa: BLE001
-        click.echo(f"[ERROR] Failed to load settings: {exc}", err=True)
-        sys.exit(1)
+    settings = _load_settings_or_exit()
 
     try:
         click.echo("Running dry-run (scan -> transform -> simulated push)...")
