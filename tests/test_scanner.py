@@ -7,10 +7,10 @@ from unittest.mock import patch
 import pytest
 import responses as resp
 
-from defensive_lineage.commons.exceptions import ScanTimeoutError
-from defensive_lineage.commons.settings import Settings
-from defensive_lineage.orchestrators.pbi_scanner import ScannerClient
-from defensive_lineage.services.scanner import (
+from lineage_syncer.commons.exceptions import ScanTimeoutError
+from lineage_syncer.commons.settings import Settings
+from lineage_syncer.orchestrators.pbi_scanner import ScannerClient
+from lineage_syncer.services.scanner import (
     PBI_ADMIN_BASE_URL,
     RateLimitError,
     get_scan_results,
@@ -140,7 +140,7 @@ def test_trigger_scan_raises_on_api_error() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.01)
+@patch("lineage_syncer.services.scanner._POLL_INTERVAL_SECONDS", 0.01)
 def test_poll_scan_status_succeeds() -> None:
     resp.add(
         resp.GET,
@@ -160,7 +160,7 @@ def test_poll_scan_status_succeeds() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner._POLL_INTERVAL_SECONDS", 0.1)
+@patch("lineage_syncer.services.scanner._POLL_INTERVAL_SECONDS", 0.1)
 def test_poll_scan_status_timeout() -> None:
     resp.add(
         resp.GET,
@@ -226,7 +226,7 @@ def test_get_scan_results_no_endorsed() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("lineage_syncer.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_retries_on_429() -> None:
     resp.add(
         resp.GET,
@@ -249,7 +249,7 @@ def test_pbi_request_retries_on_429() -> None:
 
 
 @resp.activate
-@patch("defensive_lineage.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
+@patch("lineage_syncer.services.scanner.INITIAL_BACKOFF_SECONDS", 0.01)
 def test_pbi_request_exhausts_retries() -> None:
     resp.add(
         resp.GET,
@@ -265,16 +265,16 @@ def test_pbi_request_exhausts_retries() -> None:
 
 @resp.activate
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    "lineage_syncer.orchestrators.pbi_scanner.get_workspace_ids",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    "lineage_syncer.orchestrators.pbi_scanner.trigger_scan",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
-@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch("lineage_syncer.orchestrators.pbi_scanner.poll_scan_status")
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    "lineage_syncer.orchestrators.pbi_scanner.get_scan_results",
     return_value=FIXTURE_SCAN_RESULT,
 )
 def test_run_full_scan_yields_datasource_instances(
@@ -298,16 +298,16 @@ def test_run_full_scan_yields_datasource_instances(
 
 @resp.activate
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_workspace_ids",
+    "lineage_syncer.orchestrators.pbi_scanner.get_workspace_ids",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.trigger_scan",
+    "lineage_syncer.orchestrators.pbi_scanner.trigger_scan",
     return_value=["e7d03602-4873-4760-b37e-1563ef5358e3"],
 )
-@patch("defensive_lineage.orchestrators.pbi_scanner.poll_scan_status")
+@patch("lineage_syncer.orchestrators.pbi_scanner.poll_scan_status")
 @patch(
-    "defensive_lineage.orchestrators.pbi_scanner.get_scan_results",
+    "lineage_syncer.orchestrators.pbi_scanner.get_scan_results",
     return_value={"workspaces": FIXTURE_SCAN_RESULT["workspaces"]},
 )
 def test_run_full_scan_handles_empty_datasource_instances(

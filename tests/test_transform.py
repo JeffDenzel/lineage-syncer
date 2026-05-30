@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from defensive_lineage.commons.models import LineageMapping
-from defensive_lineage.services.transform import (
+from lineage_syncer.commons.models import LineageMapping
+from lineage_syncer.services.transform import (
     DatabricksCoordinate,
     _build_datasource_index,
     _parse_databricks_coordinate,

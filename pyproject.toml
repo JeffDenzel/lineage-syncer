@@ -1,9 +1,9 @@
 [project]
-name = "defensive-lineage"
+name = "lineage-syncer"
 version = "1.0.0"
 description = "Bridge Power BI lineage into Databricks Unity Catalog"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 authors = [
     { name = "JeffDenzel" }
 ]
@@ -27,7 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-defensive-lineage = "defensive_lineage.cli:main"
+lineage-syncer = "lineage_syncer.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -38,16 +38,16 @@ where = ["src"]
 
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py39"]
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "B", "I"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 strict = true
 ignore_missing_imports = true

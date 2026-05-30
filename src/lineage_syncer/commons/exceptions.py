@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 
-class DefensiveLineageError(Exception):
-    """Base exception for all exceptions.
+class LineageSyncerError(Exception):
+    """Base exception for all lineage-syncer errors.
 
     All project-specific exceptions inherit from this class so that
     callers can catch the entire exception hierarchy with a single
-    ``except DefensiveLineageError`` clause if needed.
+    ``except LineageSyncerError`` clause if needed.
     """
 
 
-class AuthenticationError(DefensiveLineageError):
+class AuthenticationError(LineageSyncerError):
     """Raised when authentication to any platform fails.
 
     This covers both Databricks OAuth2 M2M failures and Microsoft
@@ -18,7 +18,7 @@ class AuthenticationError(DefensiveLineageError):
     """
 
 
-class ScanTimeoutError(DefensiveLineageError):
+class ScanTimeoutError(LineageSyncerError):
     """Raised when a Power BI Scanner API scan exceeds the timeout.
 
     Reserved for Phase 2 (Scanner). Defined here so that all custom
@@ -26,7 +26,7 @@ class ScanTimeoutError(DefensiveLineageError):
     """
 
 
-class PushError(DefensiveLineageError):
+class PushError(LineageSyncerError):
     """Raised when a Databricks Unity Catalog lineage push fails.
 
     Reserved for Phase 4 (BYOL Push). Defined here so that all custom
