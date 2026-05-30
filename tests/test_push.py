@@ -4,8 +4,8 @@ from unittest.mock import MagicMock
 
 from databricks.sdk.errors import DatabricksError, ResourceAlreadyExists
 
-from defensive_lineage.commons.models import LineageMapping
-from defensive_lineage.services.push import (
+from lineage_syncer.commons.models import LineageMapping
+from lineage_syncer.services.push import (
     _build_external_name,
     push_lineage,
 )

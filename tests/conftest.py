@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from defensive_lineage.commons.settings import Settings
+from lineage_syncer.commons.settings import Settings
 
 
 @pytest.fixture()
