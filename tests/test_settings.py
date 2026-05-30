@@ -71,7 +71,7 @@ def test_load_settings_optional_vars_override_defaults() -> None:
 
 
 def test_load_settings_raises_on_missing_databricks_host() -> None:
-    """Error path: DATABRICKS_HOST missing → raises ValidationError."""
+    """Error path: DATABRICKS_HOST missing → raises ValueError."""
     env = {
         "AZURE_TENANT_ID": "tenant-123",
         "AZURE_CLIENT_ID": "client-abc",
@@ -81,12 +81,12 @@ def test_load_settings_raises_on_missing_databricks_host() -> None:
         "DATABRICKS_CLIENT_SECRET": "dbx-secret",
     }
     with patch.dict(os.environ, env, clear=True):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError):
             load_settings()
 
 
 def test_load_settings_raises_on_missing_azure_secret() -> None:
-    """Error path: AZURE_CLIENT_SECRET missing → raises ValidationError."""
+    """Error path: AZURE_CLIENT_SECRET missing → raises ValueError."""
     env = {
         "AZURE_TENANT_ID": "tenant-123",
         "AZURE_CLIENT_ID": "client-abc",
@@ -96,7 +96,7 @@ def test_load_settings_raises_on_missing_azure_secret() -> None:
         "DATABRICKS_CLIENT_SECRET": "dbx-secret",
     }
     with patch.dict(os.environ, env, clear=True):
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValueError):
             load_settings()
 
 
@@ -142,5 +142,6 @@ def test_settings_is_frozen() -> None:
         databricks_client_id="d",
         databricks_client_secret="ds",
     )
-    with pytest.raises(Exception):  # ValidationError or TypeError depending on pydantic version
+    # Frozen model raises ValidationError on attribute assignment
+    with pytest.raises(ValidationError):
         settings.dl_log_level = "DEBUG"  # type: ignore[misc]
