@@ -7,6 +7,7 @@ Using Power BI's Scanner API and Databricks Unity Catalog's BYOL (Bring Your Own
 - Semantic Model (Dataset) -> Databricks Table lineage
 
 This tool was designed as Databricks' UC currently supports external assets but does not automatically discover them. It requires manual configuration through the Catalog Explorer UI or via REST API to register Power BI assets in Unity Catalog. With this tool I aim to automate this process.
+Currently there are still a lot of limitations, a big one is, the table in the semantic model needs to have a catalog.schema.table as name to figure out where it refers to.
 
 ## Prerequisites
 
