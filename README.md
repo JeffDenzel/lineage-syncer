@@ -75,7 +75,8 @@ DATABRICKS_CLIENT_SECRET=...
 
 ## End Result
 
-By pushing the LineageMapping to the UC and creating the external metadata the following lineage can be made:
+By pushing the LineageMapping to the UC and creating the external metadata the following lineage can be made.
+
 <img width="941" height="1331" alt="image" src="https://github.com/user-attachments/assets/6bff1790-d8c4-4cd3-8920-35c277d1071d" />
 
 This lineage is super useful, it makes the following way easier.
