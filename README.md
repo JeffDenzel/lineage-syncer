@@ -77,3 +77,10 @@ DATABRICKS_CLIENT_SECRET=...
 
 By pushing the LineageMapping to the UC and creating the external metadata the following lineage can be made:
 <img width="941" height="1331" alt="image" src="https://github.com/user-attachments/assets/6bff1790-d8c4-4cd3-8920-35c277d1071d" />
+This lineage is super useful, makes the following way easier:
+Know exactly which reports to test/fix before deploying changes.
+Finding the source of a broken or incorrect report.
+Find (sometimes useless) tables in gold with no downstream Power BI reports.
+Figure out which reports access sensitive data (to implement increased governance on them).
+Easier discovery of reports by analysts (they won't have to search to figure out where certain data is being used).
++ more.
